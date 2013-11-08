@@ -1,0 +1,41 @@
+a = 99;
+b = 23;
+c = 14;
+
+function f(x)
+{
+   print (a);
+   print ("\n");
+
+   a = 1;
+   print (a);
+   print ("\n");
+
+   b = 9;
+   print (b);
+   print ("\n");
+
+   print (c);
+   print ("\n");
+
+   if (a > 2)
+   {
+      if (b > 9)
+      {
+         var a = 12;
+      }
+      else
+      {
+         var b = true;
+      }
+   }
+   else
+   {
+      while (false)
+      {
+         var c = 4;
+      }
+   }
+}
+
+f();

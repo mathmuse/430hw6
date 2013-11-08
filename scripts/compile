@@ -1,0 +1,13 @@
+#!/bin/csh -f
+# test one and do diff
+
+set output = compilation.${1}.output
+
+sml >&! ${output} << END
+use "${1}";
+${2}
+SMLofNJ.exportFn ("${4}", ${3});
+END
+rm ${output}
+ls ${4}.* >&! /dev/null
+exit ${status}

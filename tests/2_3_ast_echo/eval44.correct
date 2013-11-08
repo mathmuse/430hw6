@@ -1,0 +1,16 @@
+function f(x)
+{
+if (x)
+{
+var a = 2;
+}
+else
+{
+var a = 3;
+}
+return a;
+}
+print f(true);
+print "\n";
+print f(false);
+print "\n";
