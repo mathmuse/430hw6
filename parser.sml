@@ -72,6 +72,7 @@ fun
  | isExpression (TK_STRING _) = true
  | isExpression TK_UNDEFINED = true
  | isExpression (TK_ID _) = true
+ | isExpression TK_FUNCTION = true
  | isExpression _ = false
 ;
 

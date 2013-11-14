@@ -84,7 +84,7 @@ and
  | printStatement (ST_ITER {whil=whil, block=block}) = printIter whil block
  | printStatement (ST_VAR expr) = 
       "var " ^ (String.concatWith ", " (List.map printExpression expr)) ^ ";"
- | printStatement (ST_RETURN) = "return;"
+ | printStatement (ST_RETURN) = "return undefined;"
  | printStatement (ST_RETURNVAL expr) = "return " ^ (printExpression expr) ^ ";" 
 
 and 
@@ -106,11 +106,11 @@ and
  | printExpression (EXP_ARG args) =
       String.concatWith ", " (List.map printExpression args)
  | printExpression (EXP_FUN {id=id, parms=parms, body=body}) = 
-   "function " ^ (printExpression id) ^ "(" ^
+   "(function " ^ (printExpression id) ^ "(" ^
    String.concatWith ", " (List.map printExpression parms) ^
    ")\n{\n" ^
    String.concatWith "\n" (List.map printSourceElement body) ^
-   "\n}"
+   "\n}\n)"
  | printExpression (EXP_ANON {parms=parms, body=body}) = 
    "(function (" ^
    String.concatWith ", " (List.map printExpression parms) ^
