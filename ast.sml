@@ -1,3 +1,5 @@
+open HashTable;
+
 datatype binaryOperator =
      BOP_PLUS
    | BOP_MINUS
@@ -21,7 +23,10 @@ datatype unaryOperator =
    | UOP_MINUS
 ;
 
-datatype expression =
+datatype env = 
+   ENV of {st: (string, expression) hash_table, prev: env option} 
+
+and expression =
      EXP_NUM of int
    | EXP_STRING of string
    | EXP_ID of string
@@ -38,6 +43,8 @@ datatype expression =
    | EXP_ARG of expression list
    | EXP_FUN of {id: expression, parms: expression list, body: sourceElement list} 
    | EXP_ANON of {parms: expression list, body: sourceElement list}
+   | EXP_CLOSURE of {body: sourceElement list, parms: string list, env: env}
+   | EXP_NONE
 
 and statement =
    ST_EXP of {exp: expression}

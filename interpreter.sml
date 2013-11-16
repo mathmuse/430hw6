@@ -38,7 +38,10 @@ fun
  | getBoolVal _  = error "trying to get boolval of non bool"
 ;
 
-fun isBool bl = bl=EXP_TRUE orelse bl=EXP_FALSE;
+fun isBool EXP_FALSE = true
+  | isBool EXP_TRUE = true
+  | isBool n = false
+;
 
 fun typeError opr req fnd = 
    error ("operator '" ^ opr ^ "' requires " ^ req ^ ", found " ^ fnd)
@@ -172,24 +175,74 @@ fun println str =
    print (str ^ "\n") 
 ;
 
+fun newEnvironment prev = 
+   ENV {
+      st = mkTable (hashFn, cmpFn) (initSize, MissingId),
+      prev = SOME prev 
+   } 
+;
+fun newBaseEnvironment () = 
+   ENV {
+      st = mkTable (hashFn, cmpFn) (initSize, MissingId),
+      prev = NONE 
+   } 
+;
+
+fun getState (ENV {st=st, prev = prev}) = 
+   st 
+;
+
+fun setPrev (ENV {st=st, prev = n}) prev1 = 
+   ENV {st=st, prev= (SOME prev1)}
+;
+
+fun
+   hasKey tbl id = 
+      case find tbl id of
+         NONE => false
+       | (SOME x) => true
+
+fun 
+   setVar id v (ENV {st=st, prev = (SOME prev)}) = 
+      if hasKey st id  
+      then (insert st (id, v); st)
+      else setVar id v prev
+ | setVar id v (ENV {st=st, prev = NONE}) = 
+      (insert st (id, v); st)
+;
+fun 
+   getVar id (ENV {st=st, prev = (SOME prev)}) = 
+      if hasKey st id  
+      then find st id 
+      else getVar id prev
+ | getVar id (ENV {st=st, prev = NONE}) = 
+      if hasKey st id  
+      then find st id 
+      else error "cant find var"
+;
+
 fun interpret fname =
    let
       val ast = parse fname
-      val res = intProgram ast
    in
-      ()
+      intProgram ast
    end
 
 and intProgram (PROGRAM {elems=elems}) = 
    let
-      val st : (string, expression) hash_table = mkTable (hashFn, cmpFn) (initSize, MissingId);
+      val st = newBaseEnvironment ()
    in
       intSubProgram elems st
    end
 
 and 
-   intSubProgram (h::t) st = intSubProgram t (intSourceElement h st)
- | intSubProgram [] st = st
+   intSubProgram (h::t) st = 
+      let val (ret1, st1) = intSourceElement h st in 
+         case ret1 of 
+            EXP_NONE => intSubProgram t st1
+          | n => (ret1, st1)
+      end
+ | intSubProgram [] st = (EXP_UNDEFINED, st)
 
 and intSourceElement (STMT {stmt=stmt}) st= 
    intStatement stmt st
@@ -201,7 +254,7 @@ and
          st1     
       end 
  | intStatement (ST_PRINT exp) st = 
-      intPrint exp st
+      (EXP_NONE, intPrint exp st)
  | intStatement (ST_BLOCK ls) st = 
       intBlock ls st
  | intStatement (ST_IF {iff=iff, thn=thn}) st = 
@@ -210,6 +263,19 @@ and
       intIfElse (ST_IFELSE {iff=iff, thn=thn, el=el}) st
  | intStatement (ST_ITER {whil=whil, block=block}) st = 
       intIter whil block st
+ | intStatement (ST_VAR (h::t)) st = 
+      let val (ast1, st1) = intExpression h st in
+         intStatement (ST_VAR t) st1
+      end
+ | intStatement (ST_RETURN) st = intReturn st
+ | intStatement (ST_RETURNVAL expr) st = intReturnVal expr st
+
+and intReturn st = (EXP_UNDEFINED, st)
+
+and intReturnVal expr st = 
+   let val (v1, st1) = intExpression expr st in
+      (v1, st)
+   end
 
 and
    intIter whil block st = 
@@ -218,9 +284,12 @@ and
          if unBoolCheck gd
          then if getBoolVal gd
             then
-               let val st2 = intStatement block st1
+               let val (ret2, st2) = intStatement block st1
                in
-                  intIter whil block st2 
+                  if ret2 = EXP_NONE then
+                     intIter whil block st2 
+                  else 
+                     (ret2, st2)
                end
             else st1
          else error ("boolean guard required for 'while' statement, found " ^ (getType gd))
@@ -233,7 +302,7 @@ and intIf (ST_IF {iff=iff, thn=thn}) st =
       then if getBoolVal gd
          then
             intStatement thn st1
-         else st1
+         else (EXP_NONE, st1)
       else error ("boolean guard required for 'if' statement, found " ^ (getType gd))
    end
 
@@ -266,18 +335,79 @@ and
  | intExpression (EXP_COND n) st = intCond (EXP_COND n) st
  | intExpression (EXP_ASSIGN n) st = intAssign (EXP_ASSIGN n) st
  | intExpression (EXP_ID n) st = intId (EXP_ID n) st
+ | intExpression (EXP_VAR n) st = intVar (EXP_VAR n) st 
+ | intExpression (EXP_VARASSIGN n) st = intVarAssign (EXP_VARASSIGN n) st 
+ | intExpression (EXP_CALL n) st = intCall (EXP_CALL n) st
+ | intExpression (EXP_FUN n) st = intFun (EXP_FUN n) st
+ | intExpression (EXP_ANON n) st = intAnon (EXP_ANON n) st
  | intExpression n st = (n, st)
 
-and intId (EXP_ID n) st =
-   case find st n of
-      SOME x => (x, st)
-    | NONE => error ("variable '" ^ n ^ "' not found")
+and idToString ((EXP_ID n) :: t) = n :: (idToString t)
+  | idToString [] = []
+
+and intVar (EXP_VAR {id=id}) st = 
+   if hasKey (getState st) id then
+      (EXP_ID id, st)
+   else
+      (insert (getState st) (id, EXP_UNDEFINED); (EXP_ID id, st)) 
+   
+and intVarAssign (EXP_VARASSIGN {id=id, assign=assign}) st = 
+   let val (ast1, st1) = intVar (EXP_VAR id) in
+     intAssign (EXP_ASSIGN {lft=(ast1),rht=assign}) st1 
+   end
+
+and getFunction mem st = 
+   let val (ast1, st1) = intExpression mem st in
+      case ast1 of 
+         (EXP_ID n) => getVar n st 
+       | n => error "NOT A FUNCTION!"
+   end
+
+and intCall (EXP_CALL {mem=mem, args=args}) st = 
+   let
+      val (id, st0) = getFunction mem st
+      val closure = getVar id st 
+      val st1 = intArg args closure st 
+   in
+      (intCallBody closure st1, st)
+   end
+
+and
+   intCallBody (EXP_CLOSURE {body=body, parms=parms, env=env}) st =
+      intSubProgram body st 
 
 and 
-   intAssign (EXP_ASSIGN {lft= (EXP_ID n), rht=rht}) st = 
-      let val (v1, st1) = intExpression rht st
+   intArg (EXP_ARG h1::t1) (EXP_CLOSURE {body=body, parms=(h2::t2), env=env}) st =
+      (insert (getState st) (h2, h1); intArg (EXP_ARG t1) (EXP_CLOSURE {body=body, parms=t2, env=env}) st)
+   intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=(h2::t2), env=env}) st =
+      (insert (getState st) (h2, EXP_UNDEFINED); intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=t2, env=env}) st)
+   intArg (EXP_ARG h1::t1) (EXP_CLOSURE {body=body, parms=[], env=env}) st =
+      st 
+   intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=[], env=env}) st = 
+      st
+   
+
+and intFun (EXP_FUN {id=id, parms=parms, body=body}) st =
+   (* TODO: add in new environment for function name *)
+   let val closure = EXP_CLOSURE {body=body, parms=(idToString parms), env=st} in
+      (closure, st)
+   end
+   
+and intAnon (EXP_ANON {parms=parms, body=body}) st =  
+   let val closure = EXP_CLOSURE {body=body, parms=(idToString parms), env=st} in
+      (closure, st)
+   end
+
+and intId (EXP_ID id) st =
+   getVar id st 
+
+and 
+   intAssign (EXP_ASSIGN {lft= (EXP_ID id), rht=rht}) st = 
+      let 
+         val (v1, st1) = intExpression rht st
+         val st2 = setVar id v1 st1
       in
-         (insert st (n, v1); (v1, st1))
+         (v1, st2)
       end
    | intAssign _ _  = 
       error "BAD ASSIGN!"
