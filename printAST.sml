@@ -77,7 +77,7 @@ and printFunction id parms body =
 
 and 
    printStatement (ST_EXP {exp=exp}) = (printExpression exp) ^ ";"
- | printStatement (ST_BLOCK ls) = printBlock ls
+ | printStatement (ST_BLOCK ls) = (print "!!!block!!!\n"; printBlock ls)
  | printStatement (ST_IF {iff=iff, thn=thn}) = printEmptyIf iff thn
  | printStatement (ST_IFELSE {iff=iff, thn=thn, el}) = printIfElse iff thn el 
  | printStatement (ST_PRINT expr) = (printPrint expr) ^ ";"
@@ -126,7 +126,7 @@ and
       ":" ^
       printExpression rht
  | printExpression (EXP_NEW {expr=expr, args=args, ids=ids}) = 
-      "(new " ^ printIds (printExpression expr ^ printExpression args) ids ^ ")"
+      printIds ("(new " ^ (printExpression expr ^ printExpression args) ^ ")") ids
  | printExpression (EXP_IDS {expr=expr, ids=ids}) = 
       printIds (printExpression expr) ids 
  | printExpression (EXP_DOTID n) = "." ^ n
