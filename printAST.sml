@@ -126,7 +126,7 @@ and
       ":" ^
       printExpression rht
  | printExpression (EXP_NEW {expr=expr, args=args, ids=ids}) = 
-      printIds (printExpression expr ^ printExpression args) ids
+      "(new " ^ printIds (printExpression expr ^ printExpression args) ids ^ ")"
  | printExpression (EXP_IDS {expr=expr, ids=ids}) = 
       printIds (printExpression expr) ids 
  | printExpression (EXP_DOTID n) = "." ^ n
