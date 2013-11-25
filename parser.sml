@@ -205,7 +205,7 @@ fun
 
 fun
    isValidId (EXP_ID _) = true
- | isValidId (EXP_IDS {expr=(EXP_ID _), ids=_ }) = true
+ | isValidId (EXP_IDS {expr=n, ids=_ }) = isValidId n
  | isValidId _ = false
 ;
 
