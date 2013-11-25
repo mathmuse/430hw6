@@ -130,6 +130,7 @@ and
  | printExpression (EXP_IDS {expr=expr, ids=ids}) = 
       printIds (printExpression expr) ids 
  | printExpression (EXP_DOTID n) = "." ^ n
+ | printExpression EXP_THIS = "this"
 
 and printCall s ((EXP_ID n) :: t) =
       printCall ("(" ^ s ^ "." ^ n ^ ")") t
