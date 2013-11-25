@@ -1,13 +1,10 @@
-function fact(n)
+function Point(x, y)
 {
-if ((n <= 0))
-{
-return 1;
+((this.x) = x);
+((this.y) = y);
 }
-else
-{
-return (n * fact((n - 1)));
-}
-}
-print fact(5);
+var p = (new Point(1, 2));
+print (p.x);
+print "\n";
+print (p.y);
 print "\n";

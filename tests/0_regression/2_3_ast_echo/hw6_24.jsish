@@ -1,0 +1,13 @@
+
+function bar()
+{
+   return foo() + 1;
+}
+
+   print bar();
+   print "\n";
+
+function foo()
+{
+   return 2;
+}

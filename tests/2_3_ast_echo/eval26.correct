@@ -1,16 +1,24 @@
-function foo()
+function Point(x, y)
 {
-return 2;
+((this.x) = x);
+((this.y) = y);
 }
-function bar()
+function Rectangle(topLeft, botRight)
 {
-var x;
-(x = (foo() + 1));
-print x;
-print "\n";
-return ((foo() * x) + foo());
-print 1;
-print "\n";
+((this.topLeft) = topLeft);
+((this.botRight) = botRight);
+((this.area) = (function ()
+{
+return ((((this.botRight).x) - ((this.topLeft).x)) * (((this.topLeft).y) - ((this.botRight).y)));
 }
-print bar();
+));
+}
+var p1 = (new Point(0, 5));
+var p2 = (new Point(5, 1));
+var rect1 = (new Rectangle(p1, p2));
+print (rect1.area)();
+print "\n";
+var rect2 = {
+topLeft:(new Point(0, 1)), botRight:(new Point(2, 0)), area:(rect1.area)};
+print (rect2.area)();
 print "\n";

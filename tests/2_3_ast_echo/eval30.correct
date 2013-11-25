@@ -1,8 +1,13 @@
-var f;
-(f = (function (a, b)
+function F()
 {
-print (a + b);
-print "\n";
+if (((this.constructor) != F))
+{
+print "invoked as function\n";
 }
-));
-f(1, 2);
+else
+{
+print "invoked as constructor\n";
+}
+}
+F();
+(new F());

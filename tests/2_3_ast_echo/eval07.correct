@@ -1,10 +1,8 @@
-function f()
+(a = {
+});
+((a.f) = (function ()
 {
-var y = 100;
+print "in f\n";
 }
-(y = 9);
-print y;
-print "\n";
-f();
-print y;
-print "\n";
+));
+(a.f)();

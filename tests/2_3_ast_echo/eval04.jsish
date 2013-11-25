@@ -1,13 +1,18 @@
-function f(y)
-{
-   print y;
-   print "\n";
-}
+a = {};
+a.x = 1;
+a.o = {};
+a.o.x = 2;
+a.y = 3;
 
-y = 9;
-print 0;
-print "\n";
-f(1);
-f(2);
-print 3;
-print "\n";
+print (typeof a);
+print ("\n");
+print (a.x);
+print ("\n");
+print (typeof a.o);
+print ("\n");
+print (a.o.x);
+print ("\n");
+print (a.y);
+print ("\n");
+print (a.z);
+print ("\n");

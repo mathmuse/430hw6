@@ -1,0 +1,53 @@
+var inherit = (function ()
+{
+function intermediate()
+{
+}
+return (function (sub, supe)
+{
+((intermediate.prototype) = (supe.prototype));
+((sub.prototype) = (new intermediate()));
+(((sub.prototype).constructor) = sub);
+((sub.superprototype) = (supe.prototype));
+return sub;
+}
+);
+}
+)();
+function Base()
+{
+}
+((Base.prototype) = {
+v:"base v\n", x:"base x\n", g:"base g\n"});
+function Sub1()
+{
+}
+inherit(Sub1, Base);
+(((Sub1.prototype).v) = "sub1 v\n");
+function Sub2()
+{
+}
+inherit(Sub2, Sub1);
+(((Sub2.prototype).x) = "sub2 x\n");
+function SubOther1()
+{
+}
+inherit(SubOther1, Base);
+(((SubOther1.prototype).g) = "subOther1 g\n");
+(b = (new Base()));
+(s1 = (new Sub1()));
+(s2 = (new Sub2()));
+(so1 = (new SubOther1()));
+printAll(b);
+printAll(s1);
+printAll(s2);
+printAll(so1);
+function printAll(o)
+{
+print (o.v);
+print "\n";
+print (o.x);
+print "\n";
+print (o.g);
+print "\n";
+}

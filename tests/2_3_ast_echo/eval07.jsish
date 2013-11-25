@@ -1,11 +1,3 @@
-function f()
-{
-   var y = 100;
-}
-
-y = 9;
-print y;
-print "\n";
-f();
-print y;
-print "\n";
+a = {};
+a.f = function () { print ("in f\n"); };
+a.f();

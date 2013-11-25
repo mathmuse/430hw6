@@ -1,0 +1,24 @@
+function F() {
+   this.own = { v : "owned by instance of F\n"};
+}
+
+F.prototype.shared = { v : "shared by all instances of F\n" };
+
+obj = new F();
+print (obj.own.v);
+print (obj.shared.v);
+
+function G() {
+}
+
+G.prototype = new F();
+G.prototype.constructor = G;
+
+o = new G();
+print (o.own.v);
+print (o.shared.v);
+
+print (obj.own == o.own);
+print ("\n");
+print (obj.shared == o.shared);
+print ("\n");

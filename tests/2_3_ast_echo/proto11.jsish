@@ -1,0 +1,24 @@
+function A() {}
+A.prototype.x = 10;
+ 
+var a = new A();
+print(a.x);
+print("\n");
+ 
+A.prototype = {
+  constructor: A,
+  x: 20,
+  y: 30
+};
+ 
+print(a.x);
+print("\n");
+print(a.y);
+print("\n");
+ 
+var b = new A();
+ 
+print(b.x);
+print("\n");
+print(b.y);
+print("\n");

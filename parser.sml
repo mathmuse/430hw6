@@ -4,6 +4,15 @@ use "ast.sml";
 
 fun error s = (output (stdErr, s); OS.Process.exit OS.Process.failure);
 
+val hashFn = HashString.hashString;
+val cmpFn = (op =);
+exception MissingId;
+val initSize = 20;
+
+fun newTable () = 
+   mkTable (hashFn, cmpFn) (initSize, MissingId)
+;
+
 val tokenMap = [
    (TK_LBRACE, "{"),
    (TK_RBRACE, "}"),
@@ -73,7 +82,15 @@ fun
  | isExpression TK_UNDEFINED = true
  | isExpression (TK_ID _) = true
  | isExpression TK_FUNCTION = true
+ | isExpression TK_LBRACE = true
+ | isExpression TK_NEW = true
+ | isExpression TK_THIS = true
  | isExpression _ = false
+;
+
+fun 
+   isExpressionStatement TK_LBRACE = false
+ | isExpressionStatement n = isExpression n
 ;
 
 fun isStatement n = 
@@ -188,6 +205,7 @@ fun
 
 fun
    isValidId (EXP_ID _) = true
+ | isValidId (EXP_IDS {expr=(EXP_ID _), ids=_ }) = true
  | isValidId _ = false
 ;
 
@@ -302,7 +320,7 @@ and parseSubstatement f fstr tk =
 and parseStatement fstr tk =
    if isPrint tk then   
       parseSubstatement parsePrintStatement fstr tk
-   else if isExpression tk then 
+   else if isExpressionStatement tk then 
       parseSubstatement parseExpressionStatement fstr tk
    else if isBlock tk then
       parseSubstatement parseBlockStatement fstr tk
@@ -443,7 +461,7 @@ and parseExpressionStatement fstr tk =
 and parseExpression fstr tk = 
    parseBinary parseAssignmentExpression isCommaOp fstr tk
 
-and parseAssignmentExpression fstr tk = 
+and parseAssignmentExpression fstr tk =
    let val (tk1, ast1) = parseConditionalExpression fstr tk in
       if tk1 = TK_ASSIGN 
       then
@@ -451,9 +469,10 @@ and parseAssignmentExpression fstr tk =
             let val (tk2, ast2) = parseAssignmentExpression fstr (nextToken fstr) in
                (tk2, EXP_ASSIGN {lft=ast1, rht=ast2})
             end
-         else 
+         else
             error "unexpected token '='"
-      else (tk1, ast1) 
+      else
+         (tk1, ast1) 
    end
 
 and parseConditionalExpression fstr tk = 
@@ -511,22 +530,69 @@ and parseCallExpression fstr tk =
          end
       else
          (tk1, ast1)
-
    end
 
 and parseCallArguments fstr tk = 
    if tk = TK_LPAREN then 
       let 
          val (tk1, ast1) = parseArguments fstr tk
-         val (tk2, ast2) = parseCallArguments fstr tk1
+         val (tk2, ast2) = parseCallArgumentsRec fstr tk1
       in
          (tk2, (ast1 :: ast2)) 
       end
    else
       (tk, [])
 
-and parseMemberExpression fstr tk = 
-   parsePrimaryExpression fstr tk
+and parseCallArgumentsRec fstr tk = 
+   if tk = TK_LPAREN then 
+      let 
+         val (tk1, ast1) = parseArguments fstr tk
+         val (tk2, ast2) = parseCallArgumentsRec fstr tk1
+      in
+         (tk2, (ast1 :: ast2)) 
+      end
+   else if tk = TK_DOT then
+      let 
+         val (tk1, ast1) = parseCallId fstr (nextToken fstr)
+         val (tk2, ast2) = parseCallArgumentsRec fstr tk1
+      in
+         (tk2, (ast1 @ ast2)) 
+      end
+   else
+      (tk, [])
+
+and parseCallId fstr tk =
+   case tk of 
+      TK_ID n => (nextToken fstr, [EXP_ID n])
+    | n => exp "identifier" n
+
+and parseMemberExpression fstr tk =
+      if tk = TK_NEW then
+         let val (tk1, ast1) = parseMemberExpression fstr (nextToken fstr)
+             val (tk2, ast2) = parseArguments fstr tk1 in 
+            let val (tk3, ast3) = parseIds fstr tk2 in
+               (tk3, EXP_NEW {expr=ast1, args=ast2, ids=ast3})
+            end
+         end
+      else
+         let val (tk1, ast1) = parsePrimaryExpression fstr tk in
+            let val (tk2, ast2) = parseIds fstr tk1 in
+               (tk2, EXP_IDS {expr=ast1, ids=ast2})
+            end
+         end
+
+and parseIds fstr tk = 
+   if tk = TK_DOT then
+      let val tk1 = nextToken fstr in
+         case tk1 of 
+            TK_ID n => 
+               let val (tk1, ast1) = parseIds fstr (nextToken fstr) in
+                  (tk1, (EXP_ID n) :: ast1)
+               end
+          | n => exp  "identifier" n 
+      end 
+   else
+      (tk, [])
 
 and parseArguments fstr tk = 
    if tk = TK_LPAREN then
@@ -573,7 +639,44 @@ and parsePrimaryExpression fstr tk =
     | TK_UNDEFINED => (nextToken fstr, EXP_UNDEFINED)
     | TK_ID n => (nextToken fstr, EXP_ID n)
     | TK_FUNCTION => parseFunctionExpression fstr tk
+    | TK_THIS => (nextToken fstr, EXP_THIS)
+    | TK_LBRACE => parseObjectLiteral fstr (nextToken fstr)
     | _ => exp "value" tk
+
+(* already accepted lbrace *)
+and parseObjectLiteral fstr tk = 
+   case tk of 
+      TK_RBRACE => (nextToken fstr, EXP_OBJECT {props=[]})
+    | n =>
+         let val (tk1, ast1) = parsePropertyList fstr tk in
+            (tk1, EXP_OBJECT {props=ast1})
+         end
+
+and parsePropertyList fstr tk = 
+   let val (tk1, ast1) = parsePropertyAssignment fstr tk in
+      if tk1 = TK_COMMA then
+         let val (tk2, ast2) = parsePropertyList fstr (nextToken fstr) in 
+            (tk2, ast1 :: ast2)
+         end
+      else if tk1 = TK_RBRACE then
+         (nextToken fstr, [ast1]) 
+      else 
+         exp "}" tk1
+   end
+
+and parsePropertyAssignment fstr tk = 
+   case tk of 
+      TK_ID n => 
+         let val tk0 = nextToken fstr in 
+            if tk0 = TK_COLON then
+               let val (tk1, ast1) = parseAssignmentExpression fstr (nextToken fstr) in
+                  (tk1, EXP_OBJECTASSIGN {lft=(EXP_ID n), rht=(ast1)})
+               end
+            else
+               exp ":" tk0
+         end
+    | n => exp "}" tk
+
 
 and parseFunctionExpression fstr tk = 
    if tk = TK_FUNCTION

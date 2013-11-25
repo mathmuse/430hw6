@@ -1,1 +1,2 @@
-operator '>' requires number * number, found number * boolean
+field reference '.' requires object, found number
+undefined

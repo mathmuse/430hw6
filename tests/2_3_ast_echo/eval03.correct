@@ -1,13 +1,8 @@
-var y;
-function f(z)
-{
-print z;
+(a = {
+});
+((a.x) = 1);
+((a.y) = 1);
+print (a.x);
 print "\n";
-}
-(y = 1);
-print 0;
-print "\n";
-f(1);
-f(2);
-print 3;
+print (a.y);
 print "\n";

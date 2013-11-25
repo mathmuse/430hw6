@@ -1,0 +1,39 @@
+function F() {
+}
+
+F.prototype.x = 42;
+F.prototype.setX = function (x) { F.prototype.x = x; };
+F.prototype.getX = function () { return F.prototype.x; };
+
+a = new F();
+b = new F();
+
+print (a.getX());
+print ("\n");
+print (b.getX());
+print ("\n");
+
+a.setX(99);
+
+print (a.getX());
+print ("\n");
+print (b.getX());
+print ("\n");
+
+a.x = 22;
+
+print (a.getX());
+print ("\n");
+print (b.getX());
+print ("\n");
+print (a.x);
+print ("\n");
+print (b.x);
+print ("\n");
+
+F.prototype.x = "Oops";
+
+print (a.getX());
+print ("\n");
+print (b.getX());
+print ("\n");

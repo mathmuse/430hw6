@@ -1,10 +1,13 @@
-function f(a, b)
+function Point(x, y)
 {
-return (a + b);
+((this.x) = x);
+((this.y) = y);
 }
-print f(1, 2);
+var p = (new Point(1, 2));
+var bad = Point(4, 3);
+print (p.x);
 print "\n";
-print f(3, 4);
+print (p.y);
 print "\n";
-print f(3, f(3, 4));
+print bad;
 print "\n";

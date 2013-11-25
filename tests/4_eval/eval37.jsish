@@ -1,26 +1,23 @@
-var g, h;
-function f()
-{
-   var a;
-   a = 0;
-   return function () { var tmp = a; a = a + 1; return tmp; };
-}
+var o = {
+   x : 2,
+   f : function () { this.x = 9; }
+};
 
-   g = f();
-   h = f();
-   print (g());
-   print ("\n");
-   print (g());
-   print ("\n");
-   print (g());
-   print ("\n");
-   print (h());
-   print ("\n");
-   print (h());
-   print ("\n");
-   print (h());
-   print ("\n");
-   print (g());
-   print ("\n");
-   print (h());
-   print ("\n");
+print o.x;
+print "\n";
+var o2 = new o.f();
+
+print o.x;
+print "\n";
+
+print o2.x;
+print "\n";
+
+o2.x = 7;
+o.f();
+
+print o.x;
+print "\n";
+
+print o2.x;
+print "\n";

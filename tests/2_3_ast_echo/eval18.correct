@@ -1,23 +1,13 @@
-var g;
-function f()
+(a = {
+x:1, f:(function ()
 {
-var a = (b = g), c, d = 9;
-print a;
-print "\n";
-print b;
-print "\n";
-print g;
-print "\n";
-print d;
-print "\n";
+((this.z) = 4);
 }
-(g = 4);
-f();
-print a;
+), y:2});
+(a.f)();
+print (a.x);
 print "\n";
-print b;
+print (a.y);
 print "\n";
-print g;
-print "\n";
-print d;
+print (a.z);
 print "\n";

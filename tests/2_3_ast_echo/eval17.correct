@@ -1,20 +1,12 @@
-var i;
-function f(n)
+(a = {
+x:1, f:(function ()
 {
-var i;
-(i = 2);
-print i;
-print "\n";
-g(3);
-print i;
-print "\n";
+var x = (this.x);
+(x = (x + 1));
 }
-function g(n)
-{
-print i;
+), y:2});
+(a.f)();
+print (a.x);
 print "\n";
-}
-(i = 3);
-f(2);
-print i;
+print (a.y);
 print "\n";

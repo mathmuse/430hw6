@@ -1,26 +1,13 @@
-var a, g, d;
+a = {
+   x : 1,
+   f : function () { this.z = 4; },
+   y : 2
+};
 
-function f()
-{
-   var a = b = g, c, d = 9;
-   print (a);
-   print ("\n");
-   print (b);
-   print ("\n");
-   print (g);
-   print ("\n");
-   print (d);
-   print ("\n");
-}
-
-g = 4;
-f();
-
-print (a);
+a.f();
+print (a.x);
 print ("\n");
-print (b);
+print (a.y);
 print ("\n");
-print (g);
-print ("\n");
-print (d);
+print (a.z);
 print ("\n");

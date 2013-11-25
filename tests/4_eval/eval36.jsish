@@ -1,26 +1,10 @@
-var g, h;
-function f()
-{
-   var a;
-   a = 0;
-   return function () { a = a + 1; return a; };
-}
+var x = 0;
 
-   g = f();
-   h = f();
-   print (g());
-   print ("\n");
-   print (g());
-   print ("\n");
-   print (g());
-   print ("\n");
-   print (h());
-   print ("\n");
-   print (h());
-   print ("\n");
-   print (h());
-   print ("\n");
-   print (g());
-   print ("\n");
-   print (h());
-   print ("\n");
+function f(a, b)
+{
+   print x;
+   print "\n";
+}
+f.x = 9;
+
+var o = new f(2, 3);

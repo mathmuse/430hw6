@@ -1,24 +1,19 @@
-i = 3;
-print (i);
-print ("\n");
-f(2);
-print (i);
-print ("\n");
+a = function () {
+   print ("in function a\n");
+   return {
+      b : {
+         c : function () {
+            print ("in function c\n");
+            return {
+               d : {
+                  e : {
+                     f : function () { print ("in function f\n"); }
+                  }
+               }
+            };
+         }
+      }
+   };
+};
 
-  var i;
-  function f(n)
-  {
-    i = 2;
-    print (i);
-    print ("\n");
-    g(8);
-    print (i);
-    print ("\n");
-    var i;
-  }
-  function g(n)
-  {
-    i = n;
-    print (i);
-    print ("\n");
-  }
+a().b.c().d.e.f();

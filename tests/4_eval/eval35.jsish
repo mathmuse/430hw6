@@ -1,25 +1,10 @@
-function f(g)
-{
-   var b, c;
-   b = 100;
-   c = 200;
-   g();
-   print (b);
-   print ("\n");
-   print (c);
-   print ("\n");
+var x = 0;
+
+function f() {
+   x = x + 1;
+   return function () { };
 }
 
-function h()
-{
-   var b, c;
-   b = 1;
-   c = 2;
-   f(function () { b = b * 2; c = c + 7;});
-   print (b);
-   print ("\n");
-   print (c);
-   print ("\n");
-}
-
-h();
+new f()();
+print (x);
+print ("\n");

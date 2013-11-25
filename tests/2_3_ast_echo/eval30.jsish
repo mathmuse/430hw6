@@ -1,4 +1,11 @@
-var f;
+function F() {
+   if (this.constructor != F) {
+      print ("invoked as function\n");
+   }
+   else {
+      print ("invoked as constructor\n");
+   }
+}
 
-f = function (a, b) { print a + b; print "\n";};
-f(1, 2);
+F();
+new F();

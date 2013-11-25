@@ -1,1 +1,1 @@
-operator '>' requires number * number, found boolean * number
+attempt to invoke 'object' value as a function

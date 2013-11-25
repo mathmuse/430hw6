@@ -1,12 +1,12 @@
-var a, b, c;
-function f(g)
-{
-   var b, c;
-   b = 100;
-   c = 200;
-   a = g();
+function F() {
 }
+F.prototype.sharedForFObjects = 1;
 
-   b = 1;
-   c = 2;
-   a = f(function () { print (b); print ("\n");  print (c); print ("\n");});
+function G() {
+}
+G.prototype = new F();
+G.prototype.constructor = G;
+
+var g = new G();
+print (g.sharedForFObjects);
+print ("\n");

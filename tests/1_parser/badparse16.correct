@@ -1,1 +1,1 @@
-expected ')', found 'var'
+unexpected token '='

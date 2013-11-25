@@ -1,12 +1,22 @@
-function f(a)
-{
-print (a + y);
+(a = {
+x:1, y:2});
+(b = {
+x:1, y:2});
+print (a.x);
 print "\n";
-}
-(y = 9);
-print 0;
+print (a.y);
 print "\n";
-f(1);
-f(2);
-print 3;
+print (b.x);
+print "\n";
+print (b.y);
+print "\n";
+((a.x) = ((a.x) + 1));
+((a.y) = ((a.y) * 2));
+print (a.x);
+print "\n";
+print (a.y);
+print "\n";
+print (b.x);
+print "\n";
+print (b.y);
 print "\n";

@@ -1,21 +1,19 @@
-var x;
-function f(a,b)
-{
-   x = x + 1;
-   return a + b;
+function Point(x, y) {
+   this.x = x;
+   this.y = y;
 }
-   x = 0;
-   print (x);
-   print ("\n");
-   print (f(1,2));
-   print ("\n");
-   print (x);
-   print ("\n");
-   print (f(2,3));
-   print ("\n");
-   print (x);
-   print ("\n");
-   print (f(2,f(3,4)));
-   print ("\n");
-   print (x);
-   print ("\n");
+
+function Rectangle(topLeft, botRight) {
+   this.area = function () {
+      return (botRight.x - topLeft.x) * (topLeft.y - botRight.y);
+   };
+}
+
+var p1 = new Point(0, 5);
+var p2 = new Point(5, 1);
+
+var rect1 = new Rectangle(p1, p2);
+
+print (rect1.area());
+print ("\n");
+

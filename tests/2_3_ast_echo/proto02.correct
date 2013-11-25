@@ -1,0 +1,13 @@
+function F()
+{
+}
+(((F.prototype).x) = {
+variable:42});
+(a = (new F()));
+(b = (new F()));
+print (a == b);
+print "\n";
+print ((a.x) == (b.x));
+print "\n";
+print ((a.x).variable);
+print "\n";

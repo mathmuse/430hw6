@@ -1,0 +1,25 @@
+function F()
+{
+}
+(((F.prototype).x) = 42);
+(((F.prototype).setX) = (function (x)
+{
+((this.x) = x);
+}
+));
+(((F.prototype).getX) = (function ()
+{
+return (this.x);
+}
+));
+(a = (new F()));
+(b = (new F()));
+print (a.getX)();
+print "\n";
+print (b.getX)();
+print "\n";
+(a.setX)(99);
+print (a.getX)();
+print "\n";
+print (b.getX)();
+print "\n";

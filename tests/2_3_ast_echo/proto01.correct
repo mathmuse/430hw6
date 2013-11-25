@@ -1,0 +1,12 @@
+function F()
+{
+}
+print (typeof F);
+print "\n";
+print (typeof (F.prototype));
+print "\n";
+print (((F.prototype).constructor) == F);
+print "\n";
+((F.a) = "Yeah, this is different, but not a problem.");
+print (F.a);
+print "\n";

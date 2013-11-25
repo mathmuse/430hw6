@@ -1,12 +1,12 @@
-  function fact(n)
-  {
-    if (n <= 0)
-    {
-	return 1;
-    }
-    else {
-        return n * fact(n - 1);
-    }
-  }
-  print fact(5);
-   print "\n";
+function Point(x, y) {
+   this.x = x;
+   this.y = y;
+}
+
+var p = new Point(1,2);
+
+print (p.x);
+print ("\n");
+print (p.y);
+print ("\n");
+

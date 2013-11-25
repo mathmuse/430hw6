@@ -1,0 +1,19 @@
+function F() {
+}
+
+F.prototype.x = 42;
+
+a = new F();
+b = new F();
+
+print (a.x);
+print ("\n");
+print (b.x);
+print ("\n");
+
+a.x = 99;
+
+print (a.x);
+print ("\n");
+print (b.x);
+print ("\n");

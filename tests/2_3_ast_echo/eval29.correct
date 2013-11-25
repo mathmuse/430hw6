@@ -1,12 +1,18 @@
-var a, b;
-var f;
-(a = 7);
-(f = (function (a)
+print "Special cases are fun.\n";
+function F()
 {
-print a;
-print "\n";
+((this.x) = 9);
+return {
+x:21};
 }
-));
-f(2);
-print a;
+(a = (new F()));
+print (a.x);
+print "\n";
+function G()
+{
+((this.x) = 9);
+return 12;
+}
+(b = (new G()));
+print (b.x);
 print "\n";

@@ -1,20 +1,13 @@
-  var i;
-  function f(n)
-  {
-    var i = 2;
-    print (i);
-    print ("\n");
-  }
-  function g(n)
-  {
-    i = n;
-    print (i);
-    print ("\n");
-  }
-i = 3;
-f(2);
-print (i);
-print ("\n");
-g(7);
-print (i);
-print ("\n");
+a = {
+   b : {
+      c : {
+         d : {
+            e : {
+               f : function () { print ("in function f\n"); }
+            }
+         }
+      }
+   }
+};
+
+a.b.c.d.e.f();

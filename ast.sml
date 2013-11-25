@@ -45,6 +45,11 @@ and expression =
    | EXP_ANON of {parms: expression list, body: sourceElement list}
    | EXP_CLOSURE of {body: sourceElement list, parms: string list, env: env}
    | EXP_NONE
+   | EXP_THIS
+   | EXP_OBJECT of {props: expression list}
+   | EXP_OBJECTASSIGN of {lft: expression, rht: expression}
+   | EXP_NEW of {expr: expression, args: expression, ids: expression list}
+   | EXP_IDS of {expr: expression, ids: expression list}
 
 and statement =
    ST_EXP of {exp: expression}

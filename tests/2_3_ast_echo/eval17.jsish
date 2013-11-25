@@ -1,21 +1,11 @@
-  var i;
-  function f(n)
-  {
-    var i;
-    i = 2;
-    print i;
-    print "\n";
-    g(3);
-    print i;
-    print "\n";
-  }
-  function g(n)
-  {
-    print i;
-    print "\n";
-  }
+a = {
+   x : 1,
+   f : function () { var x = this.x; x = x + 1; },
+   y : 2
+};
 
-i = 3;
-f(2);
-print i;
-print "\n";
+a.f();
+print (a.x);
+print ("\n");
+print (a.y);
+print ("\n");

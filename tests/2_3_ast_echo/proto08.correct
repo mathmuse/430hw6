@@ -1,0 +1,44 @@
+var F = (function ()
+{
+}
+);
+((F.prototype) = (function ()
+{
+var theX = 42;
+function setX(x)
+{
+(theX = x);
+}
+function getX()
+{
+return theX;
+}
+return {
+constructor:F, setX:setX, getX:getX};
+}
+)());
+(a = (new F()));
+(b = (new F()));
+print (a.getX)();
+print "\n";
+print (b.getX)();
+print "\n";
+(a.setX)(99);
+print (a.getX)();
+print "\n";
+print (b.getX)();
+print "\n";
+((a.theX) = 22);
+print (a.getX)();
+print "\n";
+print (b.getX)();
+print "\n";
+print (a.theX);
+print "\n";
+print (b.theX);
+print "\n";
+(((F.prototype).theX) = "No matter.");
+print (a.getX)();
+print "\n";
+print (b.getX)();
+print "\n";

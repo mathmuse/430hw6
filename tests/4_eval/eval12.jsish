@@ -1,17 +1,16 @@
-  function f(i)
-  {
-    g(14 * 2);
-    print (i);
-    print ("\n");
-  }
-  function g(i)
-  {
-    print (i);
-    print ("\n");
-    i = 17;
-    print (3);
-    print ("\n");
-  }
+a = {
+   b : {
+      c : function () {
+         print ("in function c\n");
+         return {
+            d : {
+               e : {
+                  f : function () { print ("in function f\n"); }
+               }
+            }
+         };
+      }
+   }
+};
 
-  f(7);
-  g(8);
+a.b.c().d.e.f();

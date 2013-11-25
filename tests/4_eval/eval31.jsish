@@ -1,9 +1,14 @@
-var a;
-var f;
+var x = 2;
+function F() {
+   print (this.x);
+   print ("\n");
+   this.x = 19;
+   print (this.x);
+   print ("\n");
+}
 
-a = 7;
-(function (a) { print (a); print ("\n"); })(2);
+new F();
+F();
 
-print (a);
+print (x);
 print ("\n");
-

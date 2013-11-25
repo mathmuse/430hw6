@@ -1,16 +1,23 @@
-var result;
-function fact(n)
+(a = {
+x:1, y:2, f:(function (that)
 {
-if ((n <= 0))
-{
-(result = 1);
+print (that.x);
+print "\n";
+print (that.y);
+print "\n";
+((that.x) = ((that.x) + 9));
+print (that.x);
+print "\n";
+print (that.y);
+print "\n";
 }
-else
-{
-fact((n - 1));
-(result = (n * result));
-}
-}
-fact(5);
-print result;
+)});
+print (a.x);
+print "\n";
+print (a.y);
+print "\n";
+(a.f)(a);
+print (a.x);
+print "\n";
+print (a.y);
 print "\n";

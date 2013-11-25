@@ -1,1 +1,1 @@
-expected 'value', found ','
+expected 'identifier', found '}'

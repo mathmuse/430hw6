@@ -1,5 +1,2 @@
-var x;
-  function j(b)
-  {
-  }
-   x = j(true > 3);
+var a = { f : function () {} };
+a();

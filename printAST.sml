@@ -117,6 +117,22 @@ and
    ")\n{\n" ^
    String.concatWith "\n" (List.map printSourceElement body) ^
    "\n}\n)"
+ | printExpression (EXP_OBJECT {props=props}) = 
+   "{\n" ^
+   String.concatWith ", " (List.map printExpression props) ^
+   "}"
+ | printExpression (EXP_OBJECTASSIGN {lft=lft, rht=rht}) = 
+      printExpression lft ^
+      ":" ^
+      printExpression rht
+ | printExpression (EXP_NEW {expr=expr, args=args, ids=ids}) = 
+      printIds (printExpression expr ^ printExpression args) ids
+ | printExpression (EXP_IDS {expr=expr, ids=ids}) = 
+      printIds (printExpression expr) ids 
+
+and printIds s (h :: t) =
+      printIds ("(" ^ s ^ "." ^ (printExpression h) ^ ")") t
+  | printIds s [] = s 
 
 and printAssign lft rht = 
    "(" ^ (printExpression lft) ^ " = " ^ (printExpression rht) ^ ")"
