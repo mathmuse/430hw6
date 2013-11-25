@@ -50,7 +50,7 @@ and expression =
    | EXP_OBJECTASSIGN of {lft: expression, rht: expression}
    | EXP_NEW of {expr: expression, args: expression, ids: expression list}
    | EXP_IDS of {expr: expression, ids: expression list}
-
+   | EXP_DOTID of string
 and statement =
    ST_EXP of {exp: expression}
  | ST_BLOCK of sourceElement list

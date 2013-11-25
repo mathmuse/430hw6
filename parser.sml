@@ -563,7 +563,7 @@ and parseCallArgumentsRec fstr tk =
 
 and parseCallId fstr tk =
    case tk of 
-      TK_ID n => (nextToken fstr, [EXP_ID n])
+      TK_ID n => (nextToken fstr, [EXP_DOTID n])
     | n => exp "identifier" n
 
 and parseMemberExpression fstr tk =

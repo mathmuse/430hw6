@@ -102,9 +102,9 @@ and
  | printExpression (EXP_VARASSIGN {id=id, assign=assign}) = 
       (printExpression id) ^ " = " ^ (printExpression assign)
  | printExpression (EXP_CALL {mem=mem, args=args}) = 
-      (printExpression mem) ^ "(" ^ (String.concatWith " " (List.map printExpression args)) ^ ")"
+      printCall (printExpression mem) args
  | printExpression (EXP_ARG args) =
-      String.concatWith ", " (List.map printExpression args)
+      "(" ^ (String.concatWith ", " (List.map printExpression args)) ^ ")"
  | printExpression (EXP_FUN {id=id, parms=parms, body=body}) = 
    "(function " ^ (printExpression id) ^ "(" ^
    String.concatWith ", " (List.map printExpression parms) ^
@@ -129,6 +129,15 @@ and
       printIds (printExpression expr ^ printExpression args) ids
  | printExpression (EXP_IDS {expr=expr, ids=ids}) = 
       printIds (printExpression expr) ids 
+ | printExpression (EXP_DOTID n) = "." ^ n
+
+and printCall s ((EXP_ID n) :: t) =
+      printCall ("(" ^ s ^ "." ^ n ^ ")") t
+  | printCall s ((EXP_DOTID n) :: t) =
+      printCall ("(" ^ s ^ "." ^ n ^ ")") t
+  | printCall s ((EXP_ARG args) :: t) = 
+      printCall (s ^ (printExpression (EXP_ARG args))) t
+  | printCall s n = s
 
 and printIds s (h :: t) =
       printIds ("(" ^ s ^ "." ^ (printExpression h) ^ ")") t
