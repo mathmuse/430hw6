@@ -7,7 +7,7 @@ val cmpFn = (op =);
 exception MissingId;
 val initSize = 20;
 val debug = false;
-val verbose = true;
+val verbose = false;
 
 fun getTag() =
    ref 0;
@@ -131,7 +131,8 @@ fun
  | doTypeof (EXP_STRING _) = EXP_STRING stringType
  | doTypeof (EXP_CLOSURE _) = EXP_STRING closureType
  | doTypeof (EXP_ACTUALOBJECT _) = EXP_STRING objectType
- | doTypeof _ = error "unknown type!"
+ | doTypeof (EXP_ID _) = EXP_STRING "id"
+ | doTypeof _ = error "unknown type1!"
 ;
 
 fun 
@@ -142,7 +143,7 @@ fun
  | getType (EXP_STRING _) = stringType
  | getType (EXP_CLOSURE _) = closureType
  | getType (EXP_ACTUALOBJECT _) = objectType
- | getType _ = error "unknown type!"
+ | getType _ = error "unknown type2!"
 ;
 
 fun doMinus (EXP_NUM n) = EXP_NUM (~n)
@@ -179,7 +180,52 @@ fun
  | doStringBinary _ _ _ = error "not a string binary"
 ;
 
-fun printExpr exp = 
+fun println str = 
+   print (str ^ "\n") 
+;
+
+fun newTable() = mkTable (hashFn, cmpFn) (initSize, MissingId);
+
+fun newEnvironment prev = 
+   ENV {
+      st = mkTable (hashFn, cmpFn) (initSize, MissingId),
+      prev = SOME prev 
+   } 
+;
+fun newBaseEnvironment () = 
+   ENV {
+      st = mkTable (hashFn, cmpFn) (initSize, MissingId),
+      prev = NONE 
+   } 
+;
+
+fun printObj st = 
+   let val pairs = listItemsi st
+       fun printKey (a,b) = 
+         ("   " ^ a ^ ": " ^ (if verbose then printExpression b else printExpr b) ^ " ")
+   in
+      "{ " ^ foldl (op ^) ""  (List.map printKey pairs) ^ " }"
+   end 
+   
+
+and printState (st : (string, expression) hash_table) = 
+   let val pairs = listItemsi st 
+       fun printKey (a,b) = 
+         print ("|   " ^ a ^ ": " ^ (if verbose then printExpression b else printExpr b) ^ "\n\n")
+ 
+   in
+      List.map printKey pairs
+   end
+and 
+   printEnv2 (ENV {st=st, prev=(SOME nextEnv)}) = 
+      (print "|  Env:\n"; printState st; print "|\n"; printEnv2 nextEnv)
+ | printEnv2 (ENV {st=st, prev=NONE}) = 
+      (print "|  Env:\n"; printState st; print "|\n")
+and printEnv env = 
+   if debug then
+      (print "\nv---------------v\n"; printEnv2 env; print "^---------------^\n")
+   else ()
+and printExpr exp = 
    let 
       val str = case exp of 
          EXP_NUM n => String.map (fn x => case x of #"~" => #"-" | n => n) (Int.toString n)
@@ -206,53 +252,13 @@ fun printExpr exp =
        | EXP_OBJECTASSIGN _ => "objectassign print"
        | EXP_NEW _ => error "new print"
        | EXP_IDS _ => "ids-print"
-       | EXP_ACTUALOBJECT _ => "object-print"
        | EXP_DOTID _ => error "dotid print"
+       | EXP_ACTUALOBJECT {st=st} => (printObj st)
    in
       str
    end
 ;
   
-fun println str = 
-   print (str ^ "\n") 
-;
-
-fun newTable() = mkTable (hashFn, cmpFn) (initSize, MissingId);
-
-fun newEnvironment prev = 
-   ENV {
-      st = mkTable (hashFn, cmpFn) (initSize, MissingId),
-      prev = SOME prev 
-   } 
-;
-fun newBaseEnvironment () = 
-   ENV {
-      st = mkTable (hashFn, cmpFn) (initSize, MissingId),
-      prev = NONE 
-   } 
-;
-
-fun printState (st : (string, expression) hash_table) = 
-   let val pairs = listItemsi st 
-       fun printKey (a,b) = 
-         print ("|   " ^ a ^ ": " ^ (if verbose then printExpression b else printExpr b) ^ "\n\n")
-   in
-      List.map printKey pairs
-   end
-;
-
-fun 
-   printEnv2 (ENV {st=st, prev=(SOME nextEnv)}) = 
-      (print "|  Env:\n"; printState st; print "|\n"; printEnv2 nextEnv)
- | printEnv2 (ENV {st=st, prev=NONE}) = 
-      (print "|  Env:\n"; printState st; print "|\n")
-;
-
-fun printEnv env = 
-   if debug then
-      (print "\nv---------------v\n"; printEnv2 env; print "^---------------^\n")
-   else ()
-;
 
 fun getState (ENV {st=st, prev = prev}) = 
    st 
@@ -301,7 +307,7 @@ fun
       let val found = find st id in
          case found of 
             SOME n => n
-          | NONE => error "can't find yo shit"
+          | NONE => EXP_UNDEFINED
       end
 ;
 
@@ -561,18 +567,21 @@ and addObjectProps (h::t) newObj st =
       end 
   | addObjectProps [] newObj st = (newObj, st)
 
-and addObjectProp (EXP_ASSIGN {lft=(EXP_ID lft), rht=rht}) newObj st = 
-   (insert newObj (lft,rht); (newObj, st))
-
-
-and intIds (EXP_IDS {expr=n, ids=ids})  st = 
-   let val (id, st1) = intExpression n st in 
-      case id of 
-         EXP_ID stringId =>
-            (getVar stringId ids st1, st1) 
-       | _ => error ("bad id" ^ (printExpr id) ^ "\n")
+and addObjectProp (EXP_OBJECTASSIGN {lft=(EXP_ID lft), rht=rht}) newObj st = 
+   let val (rht2, st2) = intExpression rht st in
+      (insert newObj (lft, rht2); (newObj, st2))
    end
 
+and 
+   intIds (EXP_IDS {expr=n, ids=[]}) st =
+      intExpression n st
+ | intIds (EXP_IDS {expr=n, ids=ids}) st = 
+      let val (id, st1) = (n, st) in 
+         case id of 
+            EXP_ID stringId =>
+               (getVar stringId ids st1, st1) 
+          | _ => error ("bad id: " ^ (printExpr id) ^ " /// " ^ (printExpr n) ^ "\n")
+      end
 
 and idToString ((EXP_ID n) :: t) = n :: (idToString t)
   | idToString [] = []
@@ -599,16 +608,29 @@ and getFunction mem st =
    end
 
 and intCall (EXP_CALL {mem=mem, args=(h::t)}) st = 
-   let
-      val (closure, st1, newst1) = getFunction mem st
-      val (st1, newst2) = intArg h closure st newst1
-      val ret = (intCallBody closure newst2)
-   in
-      case t of 
-         [] => (ret, st1)
-       | _ => intCall (EXP_CALL {mem=ret, args=t}) st
-
-   end
+   (case h of 
+      EXP_ARG n =>
+         let
+            val (closure, st1, newst1) = getFunction mem st
+            val (st1, newst2) = intArg h closure st newst1
+            val ret = intCallBody closure newst2
+         in
+            intCall (EXP_CALL {mem=ret, args=t}) st1
+         end
+    | EXP_DOTID n => 
+         (case mem of
+            EXP_ACTUALOBJECT {st=obj} =>
+               let val ret = find obj n in
+                  (case ret of 
+                     SOME ret1 => 
+                        intCall (EXP_CALL {mem=ret1, args=t}) st
+                   | NONE => error "val not found"
+                  )
+               end
+          | _ => error "non object returned by function trying to index"
+         )
+   )
+ | intCall (EXP_CALL {mem=mem, args=[]}) st =  (mem, st)
 
 and
    intCallBody (EXP_CLOSURE {body=body, parms=parms, env=env, r=r}) st =
@@ -642,8 +664,7 @@ and intAnon (EXP_ANON {parms=parms, body=body}) st =
    end
 
 and intId (EXP_ID id) st =
-   (EXP_ID id, st)
-   (*(getVar id [] st, st)*)
+   (getVar id [] st, st)
 
 and 
    intAssign (EXP_ASSIGN {lft= (EXP_IDS {expr=(EXP_ID id), ids=ids}), rht=rht}) st = 
