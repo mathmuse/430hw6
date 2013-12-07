@@ -41,11 +41,13 @@ and expression =
    | EXP_VARASSIGN of {id: expression, assign: expression}
    | EXP_CALL of {mem: expression, args: expression list}
    | EXP_ARG of expression list
-   | EXP_FUN of {id: expression, parms: expression list, body: sourceElement list} 
+   | EXP_FUN of {id: expression, parms: expression list, body: sourceElement list}
    | EXP_ANON of {parms: expression list, body: sourceElement list}
-   | EXP_CLOSURE of {body: sourceElement list, parms: string list, env: env}
+   | EXP_CLOSURE of {body: sourceElement list, parms: string list, env: env, r: int ref}
+   | EXP_NAMEDCLOSURE of {id: expression, clos: expression}
    | EXP_NONE
    | EXP_THIS
+   | EXP_ACTUALOBJECT of {st: (string, expression) hash_table}
    | EXP_OBJECT of {props: expression list}
    | EXP_OBJECTASSIGN of {lft: expression, rht: expression}
    | EXP_NEW of {expr: expression, args: expression, ids: expression list}

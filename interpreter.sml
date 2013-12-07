@@ -6,6 +6,11 @@ val hashFn = HashString.hashString;
 val cmpFn = (op =);
 exception MissingId;
 val initSize = 20;
+val debug = false;
+val verbose = true;
+
+fun getTag() =
+   ref 0;
 
 fun 
    getBinString BOP_PLUS = "+"
@@ -81,12 +86,21 @@ fun binUndefinedCheck a b =
           | _ => false)
      | _ => false 
 ; 
+fun binFunctionCheck a b = 
+   case a of
+      EXP_CLOSURE _  =>
+         (case b of
+            EXP_CLOSURE _ => true
+          | _ => false)
+     | _ => false 
+; 
 
 fun binSameCheck a b = 
    binBoolCheck a b orelse 
    binStringCheck a b orelse 
    binNumCheck a b orelse
-   binUndefinedCheck a b
+   binUndefinedCheck a b orelse
+   binFunctionCheck a b
 ;
 
 fun 
@@ -106,6 +120,8 @@ val numType = "number";
 val boolType = "boolean";
 val undefinedType = "undefined";
 val stringType = "string";
+val closureType = "function";
+val objectType = "object";
 
 fun 
    doTypeof (EXP_NUM _) = EXP_STRING numType
@@ -113,6 +129,8 @@ fun
  | doTypeof EXP_FALSE = EXP_STRING boolType
  | doTypeof EXP_UNDEFINED = EXP_STRING undefinedType
  | doTypeof (EXP_STRING _) = EXP_STRING stringType
+ | doTypeof (EXP_CLOSURE _) = EXP_STRING closureType
+ | doTypeof (EXP_ACTUALOBJECT _) = EXP_STRING objectType
  | doTypeof _ = error "unknown type!"
 ;
 
@@ -122,6 +140,8 @@ fun
  | getType EXP_FALSE = boolType
  | getType EXP_UNDEFINED = undefinedType
  | getType (EXP_STRING _) = stringType
+ | getType (EXP_CLOSURE _) = closureType
+ | getType (EXP_ACTUALOBJECT _) = objectType
  | getType _ = error "unknown type!"
 ;
 
@@ -147,8 +167,10 @@ fun
 ;
 
 fun 
-   doEqBinary BOP_EQ a b = getBool (a =  b)
- | doEqBinary BOP_NE a b = getBool (a <> b)
+   doEqBinary BOP_EQ (EXP_NUM a) (EXP_NUM b) = getBool (a = b)
+ | doEqBinary BOP_NE (EXP_NUM a) (EXP_NUM b) = getBool (a <> b)
+ | doEqBinary BOP_EQ (EXP_CLOSURE {body=_,parms=_,env=_,r=a}) (EXP_CLOSURE {body=_,parms=_,env=_,r=b}) = getBool (a = b)
+ | doEqBinary BOP_NE (EXP_CLOSURE {body=_,parms=_,env=_,r=a}) (EXP_CLOSURE {body=_,parms=_,env=_,r=b}) = getBool (a <> b)
  | doEqBinary _ _ _ = error "not a bool binary"
 ;
 
@@ -162,13 +184,30 @@ fun printExpr exp =
       val str = case exp of 
          EXP_NUM n => String.map (fn x => case x of #"~" => #"-" | n => n) (Int.toString n)
        | EXP_STRING n => n
+       | EXP_ID n => n
        | EXP_TRUE => "true"
        | EXP_FALSE => "false"
        | EXP_UNDEFINED => "undefined"
-       | EXP_ID n => n
+       | EXP_BINARY _ => error "bin print"
+       | EXP_UNARY _ => error "un print"
+       | EXP_COND _ => error "cond print"
+       | EXP_ASSIGN _ => error "assign print"
+       | EXP_VAR _ => error "var print"
+       | EXP_VARASSIGN _ => error "varassign print"
+       | EXP_CALL _ => error "call print"
+       | EXP_ARG _ => "argprint"
        | EXP_FUN n => "function"
        | EXP_ANON n => "function"
-       | EXP_CLOSURE n => "closure" 
+       | EXP_CLOSURE n => "function"
+       | EXP_NAMEDCLOSURE n => "namedclosure" 
+       | EXP_NONE => "none print"
+       | EXP_THIS =>  "this"
+       | EXP_OBJECT _ => "object print"
+       | EXP_OBJECTASSIGN _ => "objectassign print"
+       | EXP_NEW _ => error "new print"
+       | EXP_IDS _ => "ids-print"
+       | EXP_ACTUALOBJECT _ => "object-print"
+       | EXP_DOTID _ => error "dotid print"
    in
       str
    end
@@ -177,6 +216,8 @@ fun printExpr exp =
 fun println str = 
    print (str ^ "\n") 
 ;
+
+fun newTable() = mkTable (hashFn, cmpFn) (initSize, MissingId);
 
 fun newEnvironment prev = 
    ENV {
@@ -189,6 +230,28 @@ fun newBaseEnvironment () =
       st = mkTable (hashFn, cmpFn) (initSize, MissingId),
       prev = NONE 
    } 
+;
+
+fun printState (st : (string, expression) hash_table) = 
+   let val pairs = listItemsi st 
+       fun printKey (a,b) = 
+         print ("|   " ^ a ^ ": " ^ (if verbose then printExpression b else printExpr b) ^ "\n\n")
+   in
+      List.map printKey pairs
+   end
+;
+
+fun 
+   printEnv2 (ENV {st=st, prev=(SOME nextEnv)}) = 
+      (print "|  Env:\n"; printState st; print "|\n"; printEnv2 nextEnv)
+ | printEnv2 (ENV {st=st, prev=NONE}) = 
+      (print "|  Env:\n"; printState st; print "|\n")
+;
+
+fun printEnv env = 
+   if debug then
+      (print "\nv---------------v\n"; printEnv2 env; print "^---------------^\n")
+   else ()
 ;
 
 fun getState (ENV {st=st, prev = prev}) = 
@@ -204,26 +267,61 @@ fun
       case find tbl id of
          NONE => false
        | (SOME x) => true
+;
 
 fun 
-   setVar id v (ENV {st=st, prev = (SOME prev)}) = 
-      if hasKey st id  
-      then (insert st (id, v); st)
-      else setVar id v prev
- | setVar id v (ENV {st=st, prev = NONE}) = 
-      (insert st (id, v); st)
+   insertVal id ((EXP_ID h) :: t) v st = 
+      let val found = find st id in
+         case found of 
+            SOME (EXP_ACTUALOBJECT {st=newst}) => insertVal h t v newst 
+          | _ => error "sad object"
+      end
+ | insertVal id [] v st = 
+      insert st (id, v) 
 ;
+
 fun 
-   getVar id (ENV {st=st, prev = (SOME prev)}) = ( 
+   setVar id ids v (ENV {st=st, prev = (SOME prev)}) = 
+      if hasKey st id  
+      then 
+         insertVal id ids v st
+      else setVar id ids v prev
+ | setVar id ids v (ENV {st=st, prev = NONE}) = 
+         insertVal id ids v st
+;
+
+fun
+   findVal id ((EXP_ID h)::t) st =
+      let val found = find st id in 
+         case found of
+            SOME (EXP_ACTUALOBJECT {st=newst}) => findVal h t newst 
+          | _ => error "more sad object"
+      end
+ | findVal id [] st =
+      let val found = find st id in
+         case found of 
+            SOME n => n
+          | NONE => error "can't find yo shit"
+      end
+;
+
+fun 
+   getVar id ids (ENV {st=st, prev = (SOME prev)}) = ( 
       case find st id of
-         SOME n => n 
-       | NONE => getVar id prev
+         SOME n => findVal id ids st
+       | NONE => getVar id ids prev
    )
- | getVar id (ENV {st=st, prev = NONE}) = (
+ | getVar id ids (ENV {st=st, prev = NONE}) = (
       case find st id of
-         SOME n => n
-       | NONE => error "can't find variable"
+         SOME n => findVal id ids st
+       | NONE => EXP_UNDEFINED
    )
+;
+
+fun inReturn (ENV {st=st, prev=prev}) = 
+  case prev of
+      SOME _ => true
+    | NONE => false
 ;
 
 fun interpret fname =
@@ -240,14 +338,82 @@ and intProgram (PROGRAM {elems=elems}) =
       intSubProgram elems st
    end
 
-and 
-   intSubProgram (h::t) st = 
+and
+   blockPass (h::t) st =
       let val (ret1, st1) = intSourceElement h st in 
          case ret1 of 
-            EXP_NONE => intSubProgram t st1
+            EXP_NONE => blockPass t st1
           | n => (ret1, st1)
       end
- | intSubProgram [] st = (EXP_UNDEFINED, st)
+ | blockPass [] st = (EXP_NONE, st)
+
+and 
+   intSubProgram ls st = 
+      let val (tk1, st1) = firstPass ls st 
+          val (tk2, st2) = secondPass ls st1
+      in
+         thirdPass ls st2
+      end
+
+and
+   firstPass (h::t) st =
+      (case h of 
+         STMT {stmt=(ST_VAR n)} => 
+            let val (ret1, st1) = intVarStatementFirst (ST_VAR n) st in 
+               case ret1 of 
+                  EXP_NONE => firstPass t st1
+                | n => (ret1, st1)
+            end
+       | STMT {stmt = (ST_ITER {whil=whil, block=(ST_BLOCK ls1)})} =>
+            let val st1 = st
+                val (ret2, st2) = firstPass ls1 st1
+            in
+              case ret2 of 
+                  EXP_NONE => firstPass t st2
+                | n => (ret2, st2) 
+            end
+       | STMT {stmt = (ST_IF {iff=iff, thn=(ST_BLOCK ls1)})} =>
+            let val (ret1, st1) = firstPass ls1 st
+            in
+              case ret1 of 
+                  EXP_NONE => firstPass t st1
+                | n => (ret1, st1) 
+            end
+       | STMT {stmt = (ST_IFELSE {iff=iff, thn=(ST_BLOCK ls1), el=(ST_BLOCK ls2)})} =>
+            let val (ret1, st1) = firstPass ls1 st
+                val (ret2, st2) = firstPass ls2 st1
+            in
+              case ret2 of 
+                  EXP_NONE => firstPass t st2
+                | n => (ret2, st2) 
+            end
+       | _ => firstPass t st)
+ | firstPass [] st = (EXP_UNDEFINED, st)
+
+and
+   secondPass (h::t) st =
+      (case h of 
+         FUNC _ => 
+            let val (ret1, st1) = intSourceElement h st in 
+               case ret1 of 
+                  EXP_NONE => secondPass t st1
+                | n => (ret1, st1)
+            end
+       | _ => secondPass t st)
+ | secondPass [] st = (EXP_UNDEFINED, st)
+
+and
+   thirdPass (h::t) st =
+      (case h of 
+         (*STMT {stmt=(ST_VAR _)} => thirdPass t st*)
+        STMT _ => 
+            let val (ret1, st1) = intSourceElement h st in 
+               case ret1 of 
+                  EXP_NONE => thirdPass t st1
+                | n => (ret1, st1)
+            end
+       | _ => thirdPass t st)
+ | thirdPass [] st = (EXP_UNDEFINED, st)
 
 and 
    intSourceElement (STMT {stmt=stmt}) st = intStatement stmt st
@@ -255,8 +421,8 @@ and
       intFunction id parms body st
 
 and intFunction (EXP_ID id) parms body st =  
-   let val closure = (EXP_CLOSURE {body=body, parms=(idToString parms), env=st}) in
-      (setVar id closure st; (EXP_NONE, st))
+   let val closure = (EXP_CLOSURE {body=body, parms=(idToString parms), env=st, r=(getTag())}) in
+      (setVar id [] closure st; (EXP_NONE, st))
    end
 
 and 
@@ -284,27 +450,50 @@ and
  | intStatement (ST_RETURN) st = intReturn st
  | intStatement (ST_RETURNVAL expr) st = intReturnVal expr st
 
-and intReturn st = (EXP_UNDEFINED, st)
+and
+   intVarStatementFirst (ST_VAR (h::t)) st = 
+      let val (ast1, st1) = intVarFirst h st in
+         intStatement (ST_VAR t) st1
+      end
+ | intVarStatementFirst (ST_VAR []) st = 
+      (EXP_NONE, st)
+and
+   intVarFirst (EXP_VAR {id=(EXP_ID id)}) st = 
+      if hasKey (getState st) id then
+         (EXP_ID id, st)
+      else
+         (insert (getState st) (id, EXP_UNDEFINED); (EXP_ID id, st)) 
+ | intVarFirst (EXP_VARASSIGN {id=id, assign=assign}) st = 
+      intVarFirst (EXP_VAR {id=id}) st
 
+and intReturn st = 
+   if inReturn st then
+      (EXP_UNDEFINED, st)
+   else
+      error "return statements are only valid inside functions"
 and intReturnVal expr st = 
-   let val (v1, st1) = intExpression expr st in
-      (v1, st1)
-   end
+   if inReturn st then
+      let val (v1, st1) = intExpression expr st in
+         (v1, st1)
+      end
+   else    
+      error "return statements are only valid inside functions"
 
 and
    intIter whil block st = 
       let val (gd, st1) = intExpression whil st
       in
          if unBoolCheck gd
-         then if getBoolVal gd
+         then 
+            if getBoolVal gd
             then
                let val (ret2, st2) = intStatement block st1
                in
-                  case ret2 of
+                  case ret2 of 
                      EXP_NONE => intIter whil block st2
                    | _ => (ret2, st2) 
                end
-            else (EXP_UNDEFINED, st1)
+            else (EXP_NONE, st1)
          else error ("boolean guard required for 'while' statement, found " ^ (getType gd))
       end
 
@@ -312,9 +501,12 @@ and intIf (ST_IF {iff=iff, thn=thn}) st =
    let val (gd, st1) = intExpression iff st
    in
       if unBoolCheck gd
-      then if getBoolVal gd
+      then 
+         if getBoolVal gd
          then
-            intStatement thn st1
+            let val (v, st2) = intStatement thn st1 in
+               (v, st2)
+            end
          else (EXP_NONE, st1)
       else error ("boolean guard required for 'if' statement, found " ^ (getType gd))
    end
@@ -333,13 +525,13 @@ and intIfElse (ST_IFELSE {iff=iff, thn=thn, el=el}) st =
 
 
 and intBlock ls st =
-   intSubProgram ls st
+   blockPass ls st
    
 and 
    intPrint exp st =
       let val (v, newSt) = intExpression exp st
       in
-         (print (printExpr v); newSt)
+         (printEnv newSt; print (printExpr v); newSt)
       end
 
 and 
@@ -353,81 +545,115 @@ and
  | intExpression (EXP_CALL n) st = intCall (EXP_CALL n) st
  | intExpression (EXP_FUN n) st = intFun (EXP_FUN n) st
  | intExpression (EXP_ANON n) st = intAnon (EXP_ANON n) st
+ | intExpression (EXP_IDS n) st = intIds (EXP_IDS n) st
+ | intExpression (EXP_OBJECT {props=n}) st = intObject n st
  | intExpression n st = (n, st)
+
+and intObject n st = 
+   let val newObj = newTable () 
+       val (newObj1, st1) = addObjectProps n newObj st in
+         (EXP_ACTUALOBJECT {st=newObj1}, st1)
+   end
+
+and addObjectProps (h::t) newObj st = 
+      let val (newObj1, st1) = addObjectProp h newObj st in
+        addObjectProps t newObj1 st1
+      end 
+  | addObjectProps [] newObj st = (newObj, st)
+
+and addObjectProp (EXP_ASSIGN {lft=(EXP_ID lft), rht=rht}) newObj st = 
+   (insert newObj (lft,rht); (newObj, st))
+
+
+and intIds (EXP_IDS {expr=n, ids=ids})  st = 
+   let val (id, st1) = intExpression n st in 
+      case id of 
+         EXP_ID stringId =>
+            (getVar stringId ids st1, st1) 
+       | _ => error ("bad id" ^ (printExpr id) ^ "\n")
+   end
+
 
 and idToString ((EXP_ID n) :: t) = n :: (idToString t)
   | idToString [] = []
 
 and intVar (EXP_VAR {id=(EXP_ID id)}) st = 
-   if hasKey (getState st) id then
-      (EXP_ID id, st)
-   else
-      (insert (getState st) (id, EXP_UNDEFINED); (EXP_ID id, st)) 
-   
+   (EXP_NONE, st) 
+
 and intVarAssign (EXP_VARASSIGN {id=id, assign=assign}) st = 
-   let val (ast1, st1) = intVar (EXP_VAR {id=id}) st in
-     intAssign (EXP_ASSIGN {lft=(ast1),rht=assign}) st1 
-   end
+     intAssign (EXP_ASSIGN {lft=(EXP_IDS {expr=id, ids=[]}),rht=assign}) st 
 
 and getFunction mem st = 
    let val (ast1, st1) = intExpression mem st in
-      (ast1, st1)
+      case ast1 of 
+         EXP_CLOSURE {body=body, parms=parms, env=env, r=r} => 
+            (ast1, st1, newEnvironment env)
+       | EXP_NAMEDCLOSURE {id=(EXP_ID id), clos=(EXP_CLOSURE {body=body, parms=parms, env=env, r=r})} => 
+            let val env1 = newEnvironment env 
+                val clos = EXP_CLOSURE {body=body, parms=parms, env=env, r=r}
+            in
+               (insert (getState env1) (id, ast1);
+               (clos, st1, env1))
+            end
+       | _ => error ("attempt to invoke '" ^ (getType ast1) ^ "' value as a function")
    end
 
 and intCall (EXP_CALL {mem=mem, args=(h::t)}) st = 
    let
-      val (closure, st0) = getFunction mem st
-      val st1 = intArg h closure st 
-      val ret = (intCallBody closure st1)
+      val (closure, st1, newst1) = getFunction mem st
+      val (st1, newst2) = intArg h closure st newst1
+      val ret = (intCallBody closure newst2)
    in
       case t of 
-         [] => (EXP_NONE, st)
-       | _ => intCall (EXP_CALL {mem=mem, args=t}) st
+         [] => (ret, st1)
+       | _ => intCall (EXP_CALL {mem=ret, args=t}) st
 
    end
 
 and
-   intCallBody (EXP_CLOSURE {body=body, parms=parms, env=env}) st =
+   intCallBody (EXP_CLOSURE {body=body, parms=parms, env=env, r=r}) st =
       let val (ret1, st1) = intSubProgram body st in
-          ret1
+         ret1
       end
 
 and 
-   intArg (EXP_ARG (h1::t1)) (EXP_CLOSURE {body=body, parms=(h2::t2), env=env}) st =
-      (insert (getState st) (h2, h1); 
-       intArg (EXP_ARG t1) (EXP_CLOSURE {body=body, parms=t2, env=env}) st)
- | intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=(h2::t2), env=env}) st =
-      (insert (getState st) (h2, EXP_UNDEFINED); 
-       intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=t2, env=env}) st)
- | intArg (EXP_ARG (h1::t1)) (EXP_CLOSURE {body=body, parms=[], env=env}) st =
-      st 
- | intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=[], env=env}) st = 
-      st
-   
+   intArg (EXP_ARG (h1::t1)) (EXP_CLOSURE {body=body, parms=(h2::t2), env=env, r=r}) st newst=
+      let val (arg, st0) = intExpression h1 st in 
+         (insert (getState newst) (h2, arg); 
+         intArg (EXP_ARG t1) (EXP_CLOSURE {body=body, parms=t2, env=env, r=r}) st0 newst)
+      end
+ | intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=(h2::t2), env=env, r=r}) st newst=
+      (insert (getState newst) (h2, EXP_UNDEFINED); 
+       intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=t2, env=env, r=r}) st newst)
+ | intArg (EXP_ARG (h1::t1)) (EXP_CLOSURE {body=body, parms=[], env=env, r=r}) st newst =
+      (st, newst) 
+ | intArg (EXP_ARG []) (EXP_CLOSURE {body=body, parms=[], env=env, r=r}) st newst = 
+      (st, newst)
+ | intArg a b st newst = error ((printExpr a) ^ " " ^ (printExpr b))
 
 and intFun (EXP_FUN {id=id, parms=parms, body=body}) st =
-   (* TODO: add in new environment for function name *)
-   let val closure = EXP_CLOSURE {body=body, parms=(idToString parms), env=st} in
-      (closure, st)
+   let val closure = EXP_CLOSURE {body=body, parms=(idToString parms), env=st, r=(getTag())} in
+      (EXP_NAMEDCLOSURE {id=id, clos=closure}, st)
    end
    
 and intAnon (EXP_ANON {parms=parms, body=body}) st =  
-   let val closure = EXP_CLOSURE {body=body, parms=(idToString parms), env=st} in
+   let val closure = EXP_CLOSURE {body=body, parms=(idToString parms), env=st, r=(getTag())} in
       (closure, st)
    end
 
 and intId (EXP_ID id) st =
-   (getVar id st, st) 
+   (EXP_ID id, st)
+   (*(getVar id [] st, st)*)
 
 and 
-   intAssign (EXP_ASSIGN {lft= (EXP_ID id), rht=rht}) st = 
+   intAssign (EXP_ASSIGN {lft= (EXP_IDS {expr=(EXP_ID id), ids=ids}), rht=rht}) st = 
       let 
          val (v1, st1) = intExpression rht st
-         val st2 = setVar id v1 st1
+         val st2 = setVar id ids v1 st1
       in
          (v1, st1) (* TODO: this might not work *)
       end
-   | intAssign _ _  = 
+ | intAssign _ _  = 
       error "BAD ASSIGN!"
 
 and intBinary (EXP_BINARY {opr=opr, lft=lft, rht=rht}) st = 
@@ -460,9 +686,7 @@ and intBinary (EXP_BINARY {opr=opr, lft=lft, rht=rht}) st =
       fun handleEq () = 
          let val (right, st2) = intExpression rht st1 in 
             if binSameCheck left right
-            then 
-            (*   (doEqBinary opr left right, st2)
-            *) (EXP_TRUE, st2)
+            then (doEqBinary opr left right, st2)
             else case opr of
                BOP_EQ => (EXP_FALSE, st2)
              | BOP_NE => (EXP_TRUE, st2)

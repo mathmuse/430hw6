@@ -1,1 +1,24 @@
-(a) = 6;
+print "0\n";
+a = {};
+print "1\n";
+a.x = 1;
+print "2\n";
+a.o = {};
+print "3\n";
+a.o.x = 2;
+print "4\n";
+a.y = 3;
+print "5\n";
+
+print (typeof a);
+print ("\n");
+print (a.x);
+print ("\n");
+print (typeof a.o);
+print ("\n");
+print (a.o.x);
+print ("\n");
+print (a.y);
+print ("\n");
+print (a.z);
+print ("\n");
