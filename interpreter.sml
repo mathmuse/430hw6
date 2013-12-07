@@ -6,7 +6,7 @@ val hashFn = HashString.hashString;
 val cmpFn = (op =);
 exception MissingId;
 val initSize = 20;
-val debug = false;
+val debug = true;
 val verbose = false;
 
 fun getTag() =
@@ -548,7 +548,7 @@ and
  | intExpression (EXP_ID n) st = intId (EXP_ID n) st
  | intExpression (EXP_VAR n) st = intVar (EXP_VAR n) st 
  | intExpression (EXP_VARASSIGN n) st = intVarAssign (EXP_VARASSIGN n) st 
- | intExpression (EXP_CALL n) st = intCall (EXP_CALL n) st
+ | intExpression (EXP_CALL n) st = intCall (EXP_CALL n) st (envToObj st)
  | intExpression (EXP_FUN n) st = intFun (EXP_FUN n) st
  | intExpression (EXP_ANON n) st = intAnon (EXP_ANON n) st
  | intExpression (EXP_IDS n) st = intIds (EXP_IDS n) st
@@ -579,7 +579,9 @@ and
       let val (id, st1) = (n, st) in 
          case id of 
             EXP_ID stringId =>
-               (getVar stringId ids st1, st1) 
+               (getVar stringId ids st1, st1)
+          | EXP_THIS =>
+               (getVar "this" ids st1, st1)
           | _ => error ("bad id: " ^ (printExpr id) ^ " /// " ^ (printExpr n) ^ "\n")
       end
 
@@ -607,15 +609,22 @@ and getFunction mem st =
        | _ => error ("attempt to invoke '" ^ (getType ast1) ^ "' value as a function")
    end
 
-and intCall (EXP_CALL {mem=mem, args=(h::t)}) st = 
+and envToObj (ENV {st=st, prev=prev}) = 
+   EXP_ACTUALOBJECT {st=st}
+
+and addThis (ENV {st=st, prev=prev}) obj = 
+   (insert st ("this", obj); ENV {st=st, prev=prev}) 
+
+and intCall (EXP_CALL {mem=mem, args=(h::t)}) st this = 
    (case h of 
       EXP_ARG n =>
          let
             val (closure, st1, newst1) = getFunction mem st
-            val (st1, newst2) = intArg h closure st newst1
-            val ret = intCallBody closure newst2
+            val (st2, newst2) = intArg h closure st1 newst1
+            val newst3 = addThis newst2 this
+            val ret = intCallBody closure newst3
          in
-            intCall (EXP_CALL {mem=ret, args=t}) st1
+            intCall (EXP_CALL {mem=ret, args=t}) st2 this
          end
     | EXP_DOTID n => 
          (case mem of
@@ -623,14 +632,14 @@ and intCall (EXP_CALL {mem=mem, args=(h::t)}) st =
                let val ret = find obj n in
                   (case ret of 
                      SOME ret1 => 
-                        intCall (EXP_CALL {mem=ret1, args=t}) st
+                        intCall (EXP_CALL {mem=ret1, args=t}) st mem
                    | NONE => error "val not found"
                   )
                end
           | _ => error "non object returned by function trying to index"
          )
    )
- | intCall (EXP_CALL {mem=mem, args=[]}) st =  (mem, st)
+ | intCall (EXP_CALL {mem=mem, args=[]}) st this =  (mem, st)
 
 and
    intCallBody (EXP_CLOSURE {body=body, parms=parms, env=env, r=r}) st =
